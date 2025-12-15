@@ -1,33 +1,27 @@
-FROM ubuntu:22.04
+FROM python:3.11-slim
 
-# Установка зависимостей
-RUN apt-get update && apt-get install -y \
-    postgresql-15 \
-    postgresql-15-wal2json \
-    postgresql-client-15 \
-    python3 \
-    python3-pip \
-    python3-psycopg2 \
+# Устанавливаем клиент PostgreSQL и системные зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
     curl \
+    gcc \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Patroni
-RUN pip3 install patroni[etcd] python-consul
+# Устанавливаем Patroni
+RUN pip install --no-cache-dir patroni[etcd] python-consul
 
-# Создание пользователя для PostgreSQL
+# Удаляем компиляторы после установки
+RUN apt-get purge -y --auto-remove gcc libpq-dev
+
+# Создаём пользователя
 RUN groupadd -r postgres && useradd -r -g postgres postgres
 
-# Копирование конфигурации
+# Копируем конфигурацию
 COPY patroni.yml /etc/patroni/
-
-# Настройка прав
 RUN chown -R postgres:postgres /etc/patroni
 
-# Смена пользователя
 USER postgres
-
-# Рабочая директория
 WORKDIR /home/postgres
 
-# Команда запуска
 CMD ["patroni", "/etc/patroni/patroni.yml"]
