@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # ==================== КЛАСТЕР ETCD (3 ноды) ====================
   etcd0:
-    image: bitnami/etcd:3
+    image: registry-1.docker.io/bitnami/etcd:3.5.25
     container_name: etcd0
     environment:
       - ETCD_NAME=etcd0
@@ -23,7 +23,7 @@ services:
       retries: 3
 
   etcd1:
-    image: bitnami/etcd:3
+    image: registry-1.docker.io/bitnami/etcd:3.5.25
     container_name: etcd1
     environment:
       - ETCD_NAME=etcd1
@@ -43,7 +43,7 @@ services:
       retries: 3
 
   etcd2:
-    image: bitnami/etcd:3
+    image: registry-1.docker.io/bitnami/etcd:3.5.25
     container_name: etcd2
     environment:
       - ETCD_NAME=etcd2
