@@ -1,0 +1,36 @@
+# Используем тот же базовый образ, что и в проде, но с dev-инструментами
+FROM golang:1.21-alpine AS builder
+
+# Устанавливаем инструменты для разработки и тестов
+RUN apk add --no-cache \
+    git \
+    gcc \
+    musl-dev \
+    postgresql-client \
+    curl \
+    make
+
+# Создаём рабочую директорию
+WORKDIR /go/src/audit-service
+
+# Копируем только зависимости сначала (для кэширования)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Копируем остальной код (при билде, но volume переопределит это при запуске)
+COPY . .
+
+# Устанавливаем hot-reload утилиту для разработки (опционально)
+RUN go install github.com/cosmtrek/air@latest
+
+# Собираем тестовый бинарник (если нужно)
+RUN go build -o /tmp/audit-service-test ./cmd/audit-service/
+
+# Финальный образ (можно использовать builder напрямую)
+FROM alpine:3.18
+RUN apk add --no-cache ca-certificates postgresql-client
+COPY --from=builder /tmp/audit-service-test /usr/local/bin/audit-service-test
+COPY --from=builder /go/src/audit-service/db/migrations /migrations
+
+EXPOSE 8080
+CMD ["audit-service-test"]

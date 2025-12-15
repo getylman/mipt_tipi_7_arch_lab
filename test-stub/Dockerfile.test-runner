@@ -1,0 +1,20 @@
+FROM alpine:3.18
+
+# Устанавливаем инструменты для тестирования
+RUN apk add --no-cache \
+    curl \
+    jq \
+    postgresql-client \
+    bash \
+    make
+
+# Копируем тестовые скрипты
+WORKDIR /tests
+COPY test-data/*.sql /test-data/
+COPY run-api-tests.sh /usr/local/bin/
+
+# Делаем скрипты исполняемыми
+RUN chmod +x /usr/local/bin/run-api-tests.sh
+
+# Команда по умолчанию
+CMD ["/bin/sh"]
