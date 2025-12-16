@@ -23,6 +23,8 @@ import (
 func main() {
 	// 1. Загрузка конфигурации
 	cfg, err := config.Load()
+	// После загрузки конфигурации (cfg, err := config.Load())
+	// log.Printf("DEBUG: ServerPort value = %d", cfg.ServerPort)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -71,7 +73,8 @@ func main() {
 
 	// 7. Graceful shutdown
 	srv := &http.Server{
-		Addr:         ":" + string(cfg.ServerPort),
+		Addr: ": 8080",
+		// Addr:         ":" + string(cfg.ServerPort),
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,

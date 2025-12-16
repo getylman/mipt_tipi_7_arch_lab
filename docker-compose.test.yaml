@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Тестовая PostgreSQL (чистая, без миграций Patroni)
   postgres-test:
@@ -49,7 +47,10 @@ services:
       - ./test-stub/test-results:/test-results
     depends_on:
       - audit-service-test
-    entrypoint: ["tail", "-f", "/dev/null"]  # Просто держим контейнер запущенным
-
+    # УДАЛИТЬ строку с entrypoint и добавить command:
+    command: ["python", "run_tests.py"]
+    # Опционально: перезаписываем healthcheck, если он есть у базового образа
+    healthcheck:
+      disable: true
 volumes:
   postgres-test-data:

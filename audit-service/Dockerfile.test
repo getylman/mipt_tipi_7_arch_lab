@@ -1,5 +1,5 @@
 # Используем тот же базовый образ, что и в проде, но с dev-инструментами
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Устанавливаем инструменты для разработки и тестов
 RUN apk add --no-cache \
@@ -21,7 +21,7 @@ RUN go mod download
 COPY . .
 
 # Устанавливаем hot-reload утилиту для разработки (опционально)
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 # Собираем тестовый бинарник (если нужно)
 RUN go build -o /tmp/audit-service-test ./cmd/audit-service/
