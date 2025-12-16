@@ -1,5 +1,7 @@
+version: '3.8'
+
 services:
-  # Тестовая БД (полностью изолирована от продовой)
+  # Тестовая PostgreSQL (чистая, без миграций Patroni)
   postgres-test:
     image: postgres:15-alpine
     container_name: postgres-test
@@ -8,23 +10,21 @@ services:
       POSTGRES_PASSWORD: test_password
       POSTGRES_DB: test_audit_db
     ports:
-      - "15433:5432"  # Порт 15433 внешний, 5432 внутренний
+      - "15433:5432"
     volumes:
       - postgres-test-data:/var/lib/postgresql/data
-      - ./test-stub/test-data/init-test-db.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - test-network
+      - ./test-stub/test-data/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_user -d test_audit_db"]
+      test: ["CMD-SHELL", "pg_isready -U test_user"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # ТЕСТОВАЯ версия микросервиса - монтируем исходники, а не копируем
+  # Микросервис в тестовом режиме
   audit-service-test:
-    build:
+    build: 
       context: ./audit-service
-      dockerfile: Dockerfile.test  # Используем специальный Dockerfile для тестов
+      dockerfile: Dockerfile.test
     container_name: audit-service-test
     environment:
       APP_PORT: 8080
@@ -34,50 +34,22 @@ services:
       DB_PASSWORD: test_password
       DB_NAME: test_audit_db
       LOG_LEVEL: DEBUG
-      APP_VERSION: "test-${TEST_ID:-local}"
-      # Тестовые флаги
-      TEST_MODE: "true"
-      MAX_EVENTS: "1000"
+      APP_VERSION: "test-1.0.0"
     ports:
-      - "18080:8080"  # Тестовый порт 18080
-    volumes:
-      # МОНТИРУЕМ исходный код в режиме real-time разработки
-      - ./audit-service:/go/src/audit-service
-      - ./test-stub/test-data:/test-data:ro
-    working_dir: /go/src/audit-service
-    networks:
-      - test-network
+      - "18080:8080"
     depends_on:
       postgres-test:
         condition: service_healthy
-    # Запускаем сервер в dev режиме с hot reload (если нужно)
-    command: sh -c "go run cmd/audit-service/main.go"
 
-  # Контейнер для автоматических тестов (опционально)
-  test-runner:
-    build:
-      context: ./test-stub
-      dockerfile: Dockerfile.test-runner
-    container_name: test-runner
-    environment:
-      API_URL: "http://audit-service-test:8080"
-      DB_HOST: "postgres-test"
-      DB_PORT: "5432"
+  # Тестовый клиент на Python
+  test-client:
+    build: ./test-stub
+    container_name: test-client
     volumes:
       - ./test-stub/test-results:/test-results
-      - ./test-stub/test-data:/test-data:ro
-    networks:
-      - test-network
     depends_on:
       - audit-service-test
-    # Запускаем тесты только по требованию
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["echo 'Тест-раннер готов. Запустите тесты: docker exec test-runner ./run-tests.sh'"]
+    entrypoint: ["tail", "-f", "/dev/null"]  # Просто держим контейнер запущенным
 
 volumes:
   postgres-test-data:
-
-networks:
-  test-network:
-    driver: bridge
-    # Изолированная сеть, не видна основному проекту
